@@ -1,104 +1,205 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Eldenfield</title>
+<meta charset="UTF-8">
+<title>Eldenfield 2.1 Ultimate</title>
 <style>
-body{
-background:black;
-color:white;
-font-family:Arial;
-text-align:center;
-}
-button{
-padding:10px;
-margin:5px;
-font-size:16px;
-}
+body{background:#0b0b0b;color:white;font-family:Arial;text-align:center;margin:0;}
+h1{color:gold;}
+.cards{display:flex;flex-wrap:wrap;justify-content:center;}
+.card{background:#1a1a1a;border:2px solid gold;border-radius:12px;padding:12px;margin:10px;width:170px;cursor:pointer;transition:.3s;}
+.card:hover{transform:scale(1.1);box-shadow:0 0 15px gold;}
+.panel{border:2px solid #333;padding:10px;margin:10px;}
+button{padding:10px;margin:6px;font-size:15px;}
+#battle{display:none;}
 </style>
 </head>
-
 <body>
-
-<h1>⚔ Eldenfield ⚔</h1>
-
-<p>룬: <span id="runes">0</span></p>
-
-<button onclick="fight()">보스 도전</button>
-<button onclick="upgradeWeapon()">무기 강화 (이지)</button>
-<button onclick="upgradeSpirit()">영체 강화 (로데리카)</button>
-
-<p id="result"></p>
-
+<h1>⚔ ELDENFIELD 2.1 Ultimate ⚔</h1>
+<div id="menu">
+<button onclick="openJobs()">Become Tarnished</button>
+</div>
+<div id="jobs" class="cards" style="display:none"></div>
+<div id="battle">
+<div class="panel">
+<b id="job"></b><br>
+HP: <span id="hp"></span> | FP: <span id="fp"></span> | Runes: <span id="runes"></span> | Turn: <span id="turn"></span>
+</div>
+<div class="panel">
+<button onclick="attack()">Attack</button>
+<button onclick="flaskHP()">Use Crimson Flask</button>
+<button onclick="flaskFP()">Use Cerulean Flask</button>
+<button onclick="levelUp()">Level Up</button>
+<button onclick="upgradeWeapon()">Weapon Upgrade (Iji)</button>
+<button onclick="upgradeSpirit()">Spirit Upgrade (Roderika)</button>
+<button onclick="merchant()">Merchant</button>
+<button onclick="summonSpirit()">Summon Spirit</button>
+<button onclick="inventory()">Inventory</button>
+</div>
+<div class="panel">
+Enemy: <b id="enemyName"></b><br>HP: <span id="enemyHP"></span>
+</div>
+<div class="panel">
+Status: <span id="status"></span>
+</div>
+<div class="panel">
+<b>God Boss Queue:</b> <span id="godQueue"></span>
+</div>
+<div class="panel">
+<b>Flasks Remaining:</b> Crimson: <span id="crimsonCount">7</span>, Cerulean: <span id="ceruleanCount">7</span>
+</div>
+<p id="log"></p>
 <script>
+/* 플레이어/멀티 */
+let players=[],currentPlayerIndex=0
+const maxPlayers=10
+let turn=1,status="None",currentSpirit=null
+let crimsonTotal=7,ceruleanTotal=7
 
-let runes = 0
-let weapon = 1
-let spirit = 1
-
-const bosses = [
-"마그마 웜",
-"접목의 고드릭",
-"라단",
-"모르고트",
-"말레니아",
-"모그",
-"라이커드",
-"말리케스"
+/* 직업 */
+const classes=[
+{name:"Vagabond",hp:120,fp:60},{name:"Warrior",hp:100,fp:70},{name:"Hero",hp:130,fp:50},
+{name:"Bandit",hp:90,fp:80},{name:"Astrologer",hp:80,fp:120},{name:"Prophet",hp:95,fp:110},
+{name:"Samurai",hp:110,fp:70},{name:"Prisoner",hp:90,fp:110},{name:"Confessor",hp:100,fp:90},
+{name:"Wretch",hp:70,fp:70}
 ]
 
-function fight(){
+/* 상태이상 */
+const statusList=["Bleed","Poison","Rot","Madness","Frost","Sleep"]
 
-let boss = bosses[Math.floor(Math.random()*bosses.length)]
-let win = Math.random()
+/* 무기/아이템/보스/영체 */
+let weapons=[],items=[],bosses=[],spirits=[]
+for(let i=1;i<=200;i++){weapons.push("Legendary Weapon "+i)}
+for(let i=1;i<=120;i++){items.push("Relic Item "+i)}
+for(let i=1;i<=100;i++){bosses.push({name:"Boss "+i,hp:Math.floor(Math.random()*500+300),god:i<=10})} // 10개 God
+spirits=[
+{name:"Lone Wolf Ashes",damage:15,skill:"Bleed"},
+{name:"Skeletal Militiaman",damage:12,skill:"Poison"},
+{name:"Banished Knight Oleg",damage:25,skill:"Frost"},
+{name:"Mimic Tear",damage:30,skill:"Copy"},
+{name:"Lion Guardian Spirit",damage:18,skill:"Madness"},
+{name:"Dragonslayer Phantom",damage:22,skill:"Rot"},
+{name:"Moonlight Specter",damage:20,skill:"Sleep"}
+]
 
-if(win > 0.5){
-
-let reward = Math.floor(Math.random()*100)+50
-runes += reward
-
-document.getElementById("result").innerText =
-boss + " 처치! +" + reward + " 룬"
-
-}else{
-
-document.getElementById("result").innerText =
-boss + "에게 패배! 룬 없음"
-
+/* 플레이어 추가 */
+function addPlayer(job){
+let p={hp:job.hp,fp:job.fp,runes:500,job:job.name,inventory:[],weaponLevel:1,spiritLevel:1,status:"None"}
+players.push(p)
+if(players.length>=2){startBattle()}
 }
 
-document.getElementById("runes").innerText = runes
-
+/* 직업 선택 UI */
+function openJobs(){
+menu.style.display="none";jobs.style.display="flex";
+classes.forEach(c=>{
+let card=document.createElement("div");card.className="card";
+card.innerHTML="<h3>"+c.name+"</h3>HP "+c.hp+"<br>FP "+c.fp;
+card.onclick=()=>addPlayer(c)
+jobs.appendChild(card)
+})
 }
 
-function upgradeWeapon(){
+/* 배틀 시작 */
+function startBattle(){battle.style.display="block";spawnEnemy();update()}
 
-if(runes >= 100){
-
-runes -= 100
-weapon++
-
-document.getElementById("result").innerText =
-"이지가 무기를 강화했다! +"+weapon
-
+/* 적 출현 */
+function spawnEnemy(){
+if(turn%10==0){ // God 보스
+let godBoss=bosses.filter(b=>b.god)
+enemy=JSON.parse(JSON.stringify(godBoss[Math.floor(Math.random()*godBoss.length)]))
+document.getElementById("godQueue").innerText="God Boss Appears! All players must fight together!"
+}else{enemy={name:"Enemy",hp:Math.floor(Math.random()*120+80),god:false}}
+enemy.currentHP=enemy.hp
+log("Enemy: "+enemy.name+" HP:"+enemy.hp)
 }
 
+/* 공격 */
+function attack(){
+let p=players[currentPlayerIndex]
+
+if(p.status=="Moss"){log("Turn skipped due to Moss effect");nextPlayer();return}
+
+let dmg=Math.floor(Math.random()*25+p.weaponLevel*7)
+enemy.currentHP-=dmg
+log(p.job+" attacks "+dmg)
+
+/* 영체 공격 */
+if(currentSpirit){
+let sdmg=currentSpirit.damage+p.spiritLevel*5
+enemy.currentHP-=sdmg
+log(currentSpirit.name+" attacks "+sdmg)
+if(currentSpirit.skill!="Copy"){status=currentSpirit.skill;log("Spirit inflicted "+status)}
+currentSpirit=null
 }
 
-function upgradeSpirit(){
-
-if(runes >= 120){
-
-runes -= 120
-spirit++
-
-document.getElementById("result").innerText =
-"로데리카가 영체를 강화했다! +"+spirit
-
+/* 승리 체크 */
+if(enemy.currentHP<=0){
+log("Enemy defeated")
+players.forEach(pl=>pl.runes+=200)
+if(Math.random()<0.4){let w=weapons[Math.floor(Math.random()*weapons.length)];p.inventory.push(w);log("Weapon obtained "+w)}
+spawnEnemy()
 }
 
+/* 적 공격 */
+enemyAttack()
+turn++;applyStatus();update();nextPlayer()
 }
 
+/* 적 공격 */
+function enemyAttack(){
+let p=players[currentPlayerIndex]
+let dmg=Math.floor(Math.random()*20)
+p.hp-=dmg
+if(p.hp<0) p.hp=0
+log(enemy.name+" hits "+dmg)
+}
+
+/* 상태이상 적용 */
+function applyStatus(){
+let p=players[currentPlayerIndex]
+if(status=="Poison"||status=="Rot"){p.hp-=8;log("Status damage 8")}
+}
+
+/* 영체 소환 */
+function summonSpirit(){
+let s=spirits[Math.floor(Math.random()*spirits.length)]
+currentSpirit=s
+log("Spirit summoned: "+s.name)
+}
+
+/* 성배병 */
+function flaskHP(){let p=players[currentPlayerIndex]
+if(crimsonTotal>0){p.hp+=50;crimsonTotal--;document.getElementById("crimsonCount").innerText=crimsonTotal;log("Crimson Flask used");update()}}
+function flaskFP(){let p=players[currentPlayerIndex]
+if(ceruleanTotal>0){p.fp+=40;ceruleanTotal--;document.getElementById("ceruleanCount").innerText=ceruleanTotal;log("Cerulean Flask used");update()}}
+
+/* 레벨업/강화 */
+function levelUp(){let p=players[currentPlayerIndex]
+if(p.runes>=150){p.runes-=150;p.hp+=20;log("Level Up");update()}}
+function upgradeWeapon(){let p=players[currentPlayerIndex];if(p.runes>=200){p.runes-=200;p.weaponLevel++;log("Weapon upgraded")}}
+function upgradeSpirit(){let p=players[currentPlayerIndex];if(p.runes>=200){p.runes-=200;p.spiritLevel++;log("Spirit upgraded")}}
+function merchant(){let p=players[currentPlayerIndex];if(p.runes>=120){p.runes-=120;let item=items[Math.floor(Math.random()*items.length)];p.inventory.push(item);log("Merchant sold "+item)}} 
+function inventory(){let p=players[currentPlayerIndex];alert(p.inventory.join("\n"))}
+
+/* 플레이어 턴 이동 */
+function nextPlayer(){currentPlayerIndex=(currentPlayerIndex+1)%players.length}
+
+/* UI 갱신 */
+function update(){
+let p=players[currentPlayerIndex]
+hp.innerText=p.hp
+fp.innerText=p.fp
+runes.innerText=p.runes
+turn.innerText=turn
+enemyName.innerText=enemy.name
+enemyHP.innerText=enemy.currentHP
+job.innerText=p.job
+document.getElementById("status").innerText=status
+}
+
+/* 로그 출력 */
+function log(t){document.getElementById("log").innerText=t}
 </script>
-
 </body>
 </html>
