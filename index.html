@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Eldenfield</title>
+<style>
+body{
+background:black;
+color:white;
+font-family:Arial;
+text-align:center;
+}
+button{
+padding:10px;
+margin:5px;
+font-size:16px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>⚔ Eldenfield ⚔</h1>
+
+<p>룬: <span id="runes">0</span></p>
+
+<button onclick="fight()">보스 도전</button>
+<button onclick="upgradeWeapon()">무기 강화 (이지)</button>
+<button onclick="upgradeSpirit()">영체 강화 (로데리카)</button>
+
+<p id="result"></p>
+
+<script>
+
+let runes = 0
+let weapon = 1
+let spirit = 1
+
+const bosses = [
+"마그마 웜",
+"접목의 고드릭",
+"라단",
+"모르고트",
+"말레니아",
+"모그",
+"라이커드",
+"말리케스"
+]
+
+function fight(){
+
+let boss = bosses[Math.floor(Math.random()*bosses.length)]
+let win = Math.random()
+
+if(win > 0.5){
+
+let reward = Math.floor(Math.random()*100)+50
+runes += reward
+
+document.getElementById("result").innerText =
+boss + " 처치! +" + reward + " 룬"
+
+}else{
+
+document.getElementById("result").innerText =
+boss + "에게 패배! 룬 없음"
+
+}
+
+document.getElementById("runes").innerText = runes
+
+}
+
+function upgradeWeapon(){
+
+if(runes >= 100){
+
+runes -= 100
+weapon++
+
+document.getElementById("result").innerText =
+"이지가 무기를 강화했다! +"+weapon
+
+}
+
+}
+
+function upgradeSpirit(){
+
+if(runes >= 120){
+
+runes -= 120
+spirit++
+
+document.getElementById("result").innerText =
+"로데리카가 영체를 강화했다! +"+spirit
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
